@@ -38,18 +38,24 @@ class ExecuteAction extends Action
 
     private function composerRun(string $code): string
     {
-        if (preg_match('/^!composer\b(?!.*\bglobal\b)/i', $code)) {
-            $code = preg_replace('/^!composer(\s+)/i', '!composer global$1', $code);
-        }
+        $output = '';
 
-        $shellResponse = shell_exec(preg_replace('/^!/', '', $code) . ' 2>&1');
-        if (!is_string($shellResponse)) {
-            return 'Shell execution failed or returned no output.';
+        foreach (explode("\n", $code) as $line) {
+            if (preg_match('/^!composer\b(?!.*\bglobal\b)/i', $line)) {
+                $line = preg_replace('/^!composer(\s+)/i', '!composer global$1', $line);
+            }
+
+            $shellResponse = shell_exec(preg_replace('/^!/', '', $line) . ' 2>&1');
+            if (!is_string($shellResponse)) {
+                return 'Shell execution failed or returned no output with ' . $line;
+            }
+
+            $output .= $shellResponse . "\n";
         }
 
         $restartKernel = "\n\n!!! Restart Kernel !!!\n\n";
 
-        return $shellResponse . $restartKernel;
+        return $output . $restartKernel;
     }
 
     private function defaultRun(StreamOutput $streamOutput, string $code): string
@@ -65,8 +71,8 @@ class ExecuteAction extends Action
             $code = 'try { ' . $code . ' }' .
                 'catch (\Exception $e) { ' .
                 'echo "Execute Exception: " . $e->getMessage(); ' .
-                'echo "<br>File: " . $e->getFile(); ' .
-                'echo "<br>Line: " . $e->getLine(); ' .
+                'echo "\nFile: " . $e->getFile(); ' .
+                'echo "\nLine: " . $e->getLine(); ' .
                 ' }';
             $ret = $this->kernel->shell->execute($code);
             $this->kernel->shell->writeReturnValue($ret, true);
