@@ -6,7 +6,7 @@
     "php": ">=8.1",
     "ext-zmq": "*",
     "psy/psysh": "^0.12",
-    "ramsey/uuid": "^4.1",
+    "ramsey/uuid": "^4.9",
     "react/zmq": "^0.4.0"
   },
   "require-dev": {
@@ -45,7 +45,8 @@
     "phplint": "vendor/bin/phplint",
     "stan": "vendor/bin/phpstan analyze",
     "qa": [
-      "@analyze"
+      "@analyze",
+      "@test"
     ],
     "test": "vendor/bin/phpunit"
   },
