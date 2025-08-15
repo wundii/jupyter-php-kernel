@@ -78,22 +78,37 @@ class InspectReplyResponse extends Response
 
     private function extractSymbol(string $code, int $cursor_pos): string
     {
+        $length = strlen($code);
+
+        // Validiere cursor_pos
+        if ($cursor_pos < 0) {
+            $cursor_pos = 0;
+        }
+        if ($cursor_pos >= $length) {
+            $cursor_pos = $length - 1;
+        }
+
+        // Bei leerem Code oder ungültiger Position
+        if ($length === 0 || $cursor_pos < 0) {
+            return '';
+        }
+
         // Finde das Wort unter dem Cursor
         $start = $cursor_pos;
         $end = $cursor_pos;
-        $length = strlen($code);
 
         // Gehe rückwärts zum Wortanfang
-        while ($start > 0 && (ctype_alnum($code[$start - 1]) || $code[$start - 1] === '_' || $code[$start - 1] === '\\')) {
+        while ($start > 0 && isset($code[$start - 1]) && (ctype_alnum($code[$start - 1]) || $code[$start - 1] === '_' || $code[$start - 1] === '\\')) {
             $start--;
         }
 
         // Gehe vorwärts zum Wortende
-        while ($end < $length && (ctype_alnum($code[$end]) || $code[$end] === '_' || $code[$end] === '\\')) {
+        while ($end < $length && isset($code[$end]) && (ctype_alnum($code[$end]) || $code[$end] === '_' || $code[$end] === '\\')) {
             $end++;
         }
 
         return substr($code, $start, $end - $start);
+
     }
 
     private function inspectFunction(string $function_name, int $detail_level): array
@@ -145,12 +160,20 @@ class InspectReplyResponse extends Response
 
     private function isMethodCall(string $code, int $cursor_pos): bool
     {
+        if ($cursor_pos > strlen($code)) {
+            return false;
+        }
+
         $before_cursor = substr($code, 0, $cursor_pos);
         return preg_match('/(\$\w+|[\w\\\\]+)->[\w]*$/', $before_cursor) === 1;
     }
 
     private function extractMethodCall(string $code, int $cursor_pos): ?array
     {
+        if ($cursor_pos > strlen($code)) {
+            return null;
+        }
+
         $before_cursor = substr($code, 0, $cursor_pos);
         if (preg_match('/(\$\w+|\w+)->(\w*)$/', $before_cursor, $matches)) {
             return [
@@ -160,6 +183,7 @@ class InspectReplyResponse extends Response
         }
         return null;
     }
+
 
     private function inspectMethod(array $method_info, int $detail_level): array
     {
@@ -177,12 +201,20 @@ class InspectReplyResponse extends Response
 
     private function isPropertyAccess(string $code, int $cursor_pos): bool
     {
+        if ($cursor_pos > strlen($code)) {
+            return false;
+        }
+
         $before_cursor = substr($code, 0, $cursor_pos);
         return preg_match('/\$\w+->\w*$/', $before_cursor) === 1;
     }
 
     private function extractPropertyAccess(string $code, int $cursor_pos): ?array
     {
+        if ($cursor_pos > strlen($code)) {
+            return null;
+        }
+
         $before_cursor = substr($code, 0, $cursor_pos);
         if (preg_match('/(\$\w+)->(\w*)$/', $before_cursor, $matches)) {
             return [
