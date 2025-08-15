@@ -47,7 +47,7 @@ class ExecuteAction extends Action
             return 'Shell execution failed or returned no output.';
         }
 
-        $restartKernel = "<br><br><strong>!!! Restart Kernel !!!</strong>";
+        $restartKernel = "\n\n!!! Restart Kernel !!!\n\n";
 
         return $shellResponse . $restartKernel;
     }
