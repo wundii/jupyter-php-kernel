@@ -67,14 +67,8 @@ jobs:
       - name: Run PHPLint
         run: composer phplint
 
-      - name: Run RectorPHP
-        run: composer rector-dry
-
-      - name: Run PHPStan
-        run: composer phpstan
-
-      - name: Run ECS
-        run: composer ecs-dry
+      - name: Run Quality Check
+        run: composer qa
 
   unittest:
     needs: [ generate-matrix, code-quality ]
@@ -106,4 +100,4 @@ jobs:
           composer install --prefer-dist --no-progress
 
       - name: Run PHPUnitTests
-        run: composer unittest
+        run: composer test

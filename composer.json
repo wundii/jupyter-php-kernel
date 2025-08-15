@@ -14,7 +14,8 @@
     "phpunit/phpunit": "^11.5",
     "rector/rector": "^2.1",
     "symfony/var-dumper": "^6.4",
-    "symplify/easy-coding-standard": "^12.5"
+    "symplify/easy-coding-standard": "^12.5",
+    "wundii/phplint": "^0.3"
   },
   "config": {
     "optimize-autoloader": true,
@@ -41,6 +42,7 @@
       "vendor/bin/rector process",
       "vendor/bin/ecs check --fix"
     ],
+    "phplint": "vendor/bin/phplint",
     "stan": "vendor/bin/phpstan analyze",
     "qa": [
       "@analyze"
