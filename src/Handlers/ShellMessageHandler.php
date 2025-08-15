@@ -4,18 +4,23 @@ declare(strict_types=1);
 
 namespace Wundii\JupyterPhpKernel\Handlers;
 
+use Wundii\JupyterPhpKernel\Actions\CompleteAction;
 use Wundii\JupyterPhpKernel\Actions\ExecuteAction;
 use Wundii\JupyterPhpKernel\Actions\KernelInfoAction;
 use Wundii\JupyterPhpKernel\Requests\Request;
 
 class ShellMessageHandler extends MessageHandler implements IRequestHandler
 {
-    public const KERNEL_INFO_REQUEST = 'kernel_info_request';
+    public const COMPLETE_REQUEST = 'complete_request';
     public const EXECUTE_REQUEST = 'execute_request';
+    public const KERNEL_INFO_REQUEST = 'kernel_info_request';
+
 
     protected const ACTION_MAP = [
-        self::KERNEL_INFO_REQUEST => KernelInfoAction::class,
+        self::COMPLETE_REQUEST => CompleteAction::class,
         self::EXECUTE_REQUEST => ExecuteAction::class,
+        self::KERNEL_INFO_REQUEST => KernelInfoAction::class,
+
     ];
 
     public function handle(Request $request): void

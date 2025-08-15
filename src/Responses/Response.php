@@ -14,6 +14,7 @@ abstract class Response
     public const STATUS = 'status';
     public const EXECUTE_REPLY = 'execute_reply';
     public const EXECUTE_RESULT = 'execute_result';
+    public const COMPLETE_REPLY = 'complete_reply';
 
     protected string $type;
     protected array $content = [];
