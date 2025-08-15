@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Wundii\JupyterPhpKernel\Actions;
 
 use Wundii\JupyterPhpKernel\Kernel;
@@ -14,7 +16,7 @@ abstract class Action
         $this->kernel = $kernel;
     }
 
-    public function execute(Request $request)
+    public function execute(Request $request): void
     {
         $this->kernel->sendStatusMessage('busy', $request);
         $this->run($request);

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Wundii\JupyterPhpKernel\Requests;
 
 class Request
@@ -32,18 +34,29 @@ class Request
         $this->content = json_decode($content, true);
     }
 
-    protected function getIds(array $message)
+    /**
+     * @param string[] $message
+     * @return string[]
+     */
+    protected function getIds(array $message): array
     {
         return array_splice($message, 0, $this->getDelimeterIndex($message));
     }
 
-    protected function getData(array $message)
+    /**
+     * @param string[] $message
+     * @return string[]
+     */
+    protected function getData(array $message): array
     {
         return array_splice($message, 2);
     }
 
-    protected function getDelimeterIndex(array $message)
+    /**
+     * @param string[] $message
+     */
+    protected function getDelimeterIndex(array $message): int|string|false
     {
-        return array_search('<IDS|MSG>', $message);
+        return array_search('<IDS|MSG>', $message, true);
     }
 }

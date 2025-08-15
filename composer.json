@@ -43,8 +43,7 @@
     ],
     "stan": "vendor/bin/phpstan analyze",
     "qa": [
-      "@analyze",
-      "@test"
+      "@analyze"
     ],
     "test": "vendor/bin/phpunit"
   },

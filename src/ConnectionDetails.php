@@ -1,13 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Wundii\JupyterPhpKernel;
 
 class ConnectionDetails
 {
-    private string $connection_file_path;
-    private string $connection_file;
-    private array $connection_details;
-
     public string $ip;
     public string $shell_address;
     public string $iopub_address;
@@ -18,12 +16,16 @@ class ConnectionDetails
     public string $signature_scheme;
     public string $key;
 
+    private string $connection_file_path;
+    private string $connection_file;
+    private array $connection_details;
+
     public function __construct(string $connection_file_path)
     {
         $this->connection_file_path = $connection_file_path;
     }
 
-    public function read()
+    public function read(): static
     {
         $this->connection_file = file_get_contents($this->connection_file_path);
         $this->connection_details = json_decode($this->connection_file, true);
@@ -42,8 +44,8 @@ class ConnectionDetails
         return $this;
     }
 
-    private function getAddress(string $ip, string $port)
+    private function getAddress(string $ip, string $port): string
     {
-        return "$ip:$port";
+        return "{$ip}:{$port}";
     }
 }

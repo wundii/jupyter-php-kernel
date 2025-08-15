@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Wundii\JupyterPhpKernel\Responses;
 
 use Wundii\JupyterPhpKernel\Requests\Request;
@@ -15,7 +17,7 @@ class KernelInfoReplyResponse extends Response
             'banner' => 'Jupyter-PHP Kernel',
             'language_info' => [
                 'name' => 'PHP',
-                'version' => phpversion(),
+                'version' => PHP_VERSION,
                 'mimetype' => 'text/x-php',
                 'file_extension' => '.php',
                 'pygments_lexer' => 'PHP',

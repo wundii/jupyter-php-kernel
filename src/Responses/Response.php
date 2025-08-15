@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Wundii\JupyterPhpKernel\Responses;
 
 use DateTime;
-use Wundii\JupyterPhpKernel\Requests\Request;
 use Ramsey\Uuid\Uuid;
+use Wundii\JupyterPhpKernel\Requests\Request;
 
 abstract class Response
 {
@@ -34,17 +36,20 @@ abstract class Response
             'username' => 'kernel',
             'session' => $request->session_id,
             'msg_type' => $this->type,
-            'version' => '5.3'
+            'version' => '5.3',
         ];
     }
 
-    public function toMessage(string $key, string $signature_scheme)
+    /**
+     * @return string[]
+     */
+    public function toMessage(string $key, string $signature_scheme): array
     {
         $message = [
-            json_encode((object)$this->header),
-            json_encode((object)$this->parent_header),
-            json_encode((object)$this->metadata),
-            json_encode((object)$this->content)
+            json_encode((object) $this->header),
+            json_encode((object) $this->parent_header),
+            json_encode((object) $this->metadata),
+            json_encode((object) $this->content),
         ];
 
         return [
@@ -55,14 +60,14 @@ abstract class Response
         ];
     }
 
-    protected function sign(array $content, string $key, string $signature_scheme)
+    protected function sign(array $content, string $key, string $signature_scheme): string
     {
-        $hash_context = hash_init(str_replace('hmac-', '', $signature_scheme), HASH_HMAC, $key);
+        $hashContext = hash_init(str_replace('hmac-', '', $signature_scheme), HASH_HMAC, $key);
 
         foreach ($content as $data) {
-            hash_update($hash_context, $data);
+            hash_update($hashContext, $data);
         }
 
-        return hash_final($hash_context);
+        return hash_final($hashContext);
     }
 }

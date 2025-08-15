@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Wundii\JupyterPhpKernel\Responses;
 
 use Wundii\JupyterPhpKernel\Requests\Request;
@@ -11,9 +13,9 @@ class ExecuteResultResponse extends Response
         $content = [
             'execution_count' => $execution_count,
             'data' => [
-                'text/plain' => $result
+                'text/plain' => $result,
             ],
-            'metadata' => (object)[],
+            'metadata' => (object) [],
         ];
 
         parent::__construct(self::EXECUTE_RESULT, $request, $content);

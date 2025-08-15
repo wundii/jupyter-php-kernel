@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Wundii\JupyterPhpKernel\Actions;
 
 use Wundii\JupyterPhpKernel\Requests\Request;
@@ -9,7 +11,7 @@ class KernelInfoAction extends Action
 {
     protected function run(Request $request)
     {
-        $response = new KernelInfoReplyResponse($request);
-        $this->kernel->sendShellMessage($response);
+        $kernelInfoReplyResponse = new KernelInfoReplyResponse($request);
+        $this->kernel->sendShellMessage($kernelInfoReplyResponse);
     }
 }

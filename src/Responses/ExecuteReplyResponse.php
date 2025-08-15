@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Wundii\JupyterPhpKernel\Responses;
 
 use Wundii\JupyterPhpKernel\Requests\Request;
