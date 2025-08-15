@@ -13,6 +13,7 @@ class ShellMessageHandler extends MessageHandler implements IRequestHandler
 {
     public const COMPLETE_REQUEST = 'complete_request';
     public const EXECUTE_REQUEST = 'execute_request';
+    // public const INSPECT_REQUEST = 'inspect_request';
     public const KERNEL_INFO_REQUEST = 'kernel_info_request';
 
 
