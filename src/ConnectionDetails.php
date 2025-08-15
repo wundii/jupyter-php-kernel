@@ -44,7 +44,7 @@ class ConnectionDetails
         return $this;
     }
 
-    private function getAddress(string $ip, string $port): string
+    private function getAddress(string $ip, int $port): string
     {
         return "{$ip}:{$port}";
     }
