@@ -21,8 +21,8 @@ class ExecuteAction extends Action
             $code = $this->cleanCode($request->content['code']);
 
             $output = match (true) {
-                str_starts_with($code, '!composer') => $this->composerRun($code),
-                default => $this->defaultRun($streamOutput, $code),
+                str_starts_with($code, '!') => $this->bashRun($code),
+                default => $this->phpRun($streamOutput, $code),
             };
 
         } catch (Exception $exception) {
@@ -36,7 +36,7 @@ class ExecuteAction extends Action
         $this->kernel->sendShellMessage(new ExecuteReplyResponse($this->kernel->execution_count, 'ok', $request));
     }
 
-    private function composerRun(string $code): string
+    private function bashRun(string $code): string
     {
         $output = '';
 
@@ -58,7 +58,7 @@ class ExecuteAction extends Action
         return $output . $restartKernel;
     }
 
-    private function defaultRun(StreamOutput $streamOutput, string $code): string
+    private function phpRun(StreamOutput $streamOutput, string $code): string
     {
         $stream = $streamOutput->getStream();
 
