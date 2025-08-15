@@ -28,7 +28,7 @@ class Installer
             echo 'ERROR: Could not find jupyter data directory. Please ensure jupyter is installed';
         }
 
-        return $data_dir . '/kernels/PHP' . PHP_VERSION;
+        return $data_dir . '/kernels/php' . PHP_VERSION;
     }
 
     protected static function getKernelJSON(): array
