@@ -15,7 +15,8 @@ class Installer
         }
 
         file_put_contents($kernel_path . '/kernel.json', json_encode(self::getKernelJSON()));
-        copy(__FILE__ . '/logo.png', $kernel_path . '/logo.png');
+        copy(__FILE__ . '/logo-32x32.png', $kernel_path . '/logo-32x32.png');
+        copy(__FILE__ . '/logo-64x64.png', $kernel_path . '/logo-64x64.png');
     }
 
     protected static function getInstallPath(): string
@@ -37,7 +38,7 @@ class Installer
             'display_name' => 'PHP ' . PHP_VERSION,
             'language' => 'php',
             'metadata' => [
-                'logo_png' => 'logo.png',
+                'debugger' => true,
             ],
         ];
     }
