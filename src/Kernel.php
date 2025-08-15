@@ -7,7 +7,7 @@ namespace Wundii\JupyterPhpKernel;
 use Psy\Configuration;
 use Psy\Shell;
 use Ramsey\Uuid\Uuid;
-use React\EventLoop\Factory;
+use React\EventLoop\Loop;
 use React\EventLoop\LoopInterface;
 use React\ZMQ\Context;
 use React\ZMQ\SocketWrapper;
@@ -43,7 +43,7 @@ class Kernel
 
     public function run(): void
     {
-        $this->loop = Factory::create();
+        $this->loop = Loop::get();
         $this->context = new Context($this->loop);
 
         $this->shell_socket = $this->createSocket(

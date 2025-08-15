@@ -9,7 +9,7 @@ use Wundii\JupyterPhpKernel\Responses\KernelInfoReplyResponse;
 
 class KernelInfoAction extends Action
 {
-    protected function run(Request $request)
+    protected function run(Request $request): void
     {
         $kernelInfoReplyResponse = new KernelInfoReplyResponse($request);
         $this->kernel->sendShellMessage($kernelInfoReplyResponse);
