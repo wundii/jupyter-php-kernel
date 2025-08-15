@@ -15,6 +15,7 @@ class Installer
         }
 
         file_put_contents($kernel_path . '/kernel.json', json_encode(self::getKernelJSON()));
+        copy(__FILE__ . '/logo.png', $kernel_path . '/logo.png');
     }
 
     protected static function getInstallPath(): string
@@ -35,6 +36,9 @@ class Installer
             'argv' => ['jupyter-php-kernel', '-r',  '-c', '{connection_file}'],
             'display_name' => 'PHP ' . PHP_VERSION,
             'language' => 'php',
+            'metadata' => [
+                'logo_png' => 'logo.png',
+            ],
         ];
     }
 }
