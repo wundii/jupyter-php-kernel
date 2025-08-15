@@ -17,7 +17,7 @@ class Installer
         file_put_contents($kernel_path . '/kernel.json', json_encode(self::getKernelJSON()));
         copy(__DIR__ . '/logo-32x32.png', $kernel_path . '/logo-32x32.png');
         copy(__DIR__ . '/logo-64x64.png', $kernel_path . '/logo-64x64.png');
-        copy(__DIR__ . '/logo-64x64.png', $kernel_path . '/logo-svg.svg');
+        // copy(__DIR__ . '/logo-64x64.png', $kernel_path . '/logo-svg.svg');
     }
 
     protected static function getInstallPath(): string
