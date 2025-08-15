@@ -24,6 +24,16 @@ class KernelInfoReplyResponse extends Response
                 'codemirror_mode' => 'php',
                 'nbconvert_exporter' => 'php',
             ],
+            'help_links' => [
+                [
+                    'text' => 'PHP Documentation',
+                    'url' => 'https://www.php.net/docs.php'
+                ],
+                [
+                    'text' => 'PHP Manual',
+                    'url' => 'https://www.php.net/manual/de/'
+                ]
+            ],
             'status' => 'ok',
         ];
 
