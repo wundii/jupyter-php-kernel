@@ -9,9 +9,9 @@ use Wundii\JupyterPhpKernel\Responses\CompleteReplyResponse;
 
 class CompleteAction extends Action
 {
-    public function run(Request $request): void
+    protected function run(Request $request): void
     {
-        $kernelInfoReplyResponse = new CompleteReplyResponse($request);
-        $this->kernel->sendShellMessage($kernelInfoReplyResponse);
+        $completeReplyResponse = new CompleteReplyResponse($request);
+        $this->kernel->sendShellMessage($completeReplyResponse);
     }
 }

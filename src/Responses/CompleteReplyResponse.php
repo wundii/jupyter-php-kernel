@@ -54,7 +54,6 @@ class CompleteReplyResponse extends Response
     private array $builtInFunctionsUser;
     private array $builtInClasses;
 
-
     public function __construct(Request $request)
     {
         $this->initializeBuiltIns();
@@ -81,12 +80,11 @@ class CompleteReplyResponse extends Response
         $this->builtInFunctions = get_defined_functions()['internal'];
         $this->builtInFunctionsUser = get_defined_functions()['user'];
         $this->builtInClasses = get_declared_classes();
-        $this->builtInClasses = array_filter($this->builtInClasses, function($class) {
-            $reflection = new ReflectionClass($class);
-            return $reflection->isInternal();
+        $this->builtInClasses = array_filter($this->builtInClasses, function (string $class): bool {
+            $reflectionClass = new ReflectionClass($class);
+            return $reflectionClass->isInternal();
         });
     }
-
 
     private function getCompletions(string $code, int $cursor_pos): array
     {
@@ -125,18 +123,21 @@ class CompleteReplyResponse extends Response
     {
         // Finde Start des aktuellen Wortes
         $start = $cursor_pos;
-        while ($start > 0 && (ctype_alnum($code[$start - 1]) || in_array($code[$start - 1], ['_', '$', '\\']))) {
-            $start--;
+        while ($start > 0 && (ctype_alnum($code[$start - 1]) || in_array($code[$start - 1], ['_', '$', '\\'], true))) {
+            --$start;
         }
 
         // Finde Ende des aktuellen Wortes
         $end = $cursor_pos;
         $code_len = strlen($code);
-        while ($end < $code_len && (ctype_alnum($code[$end]) || in_array($code[$end], ['_', '$', '\\']))) {
-            $end++;
+        while ($end < $code_len && (ctype_alnum($code[$end]) || in_array($code[$end], ['_', '$', '\\'], true))) {
+            ++$end;
         }
 
-        return ['start' => $start, 'end' => $end];
+        return [
+            'start' => $start,
+            'end' => $end,
+        ];
     }
 
     private function getFunctionCompletions(string $partial): array
@@ -156,7 +157,7 @@ class CompleteReplyResponse extends Response
     {
         $common_vars = [
             '$_GET', '$_POST', '$_SESSION', '$_COOKIE', '$_SERVER',
-            '$_ENV', '$_FILES', '$GLOBALS', '$this'
+            '$_ENV', '$_FILES', '$GLOBALS', '$this',
         ];
 
         // $all_vars = array_merge($common_vars, $this->variables);
@@ -175,7 +176,7 @@ class CompleteReplyResponse extends Response
             'interface', 'isset', 'list', 'match', 'namespace', 'new', 'null', 'or',
             'print', 'private', 'protected', 'public', 'require', 'require_once',
             'return', 'static', 'switch', 'throw', 'trait', 'true', 'try', 'unset',
-            'use', 'var', 'while', 'xor', 'yield'
+            'use', 'var', 'while', 'xor', 'yield',
         ];
 
         return $this->filterMatches($keywords, $partial);
@@ -186,7 +187,7 @@ class CompleteReplyResponse extends Response
         return [
             'PHP_VERSION', 'PHP_MAJOR_VERSION', 'PHP_MINOR_VERSION', 'PHP_RELEASE_VERSION',
             'PHP_OS', 'PHP_SAPI', 'PHP_EOL', 'PHP_INT_MAX', 'PHP_INT_MIN',
-            'PHP_FLOAT_MAX', 'PHP_FLOAT_MIN', 'E_ERROR', 'E_WARNING', 'E_NOTICE'
+            'PHP_FLOAT_MAX', 'PHP_FLOAT_MIN', 'E_ERROR', 'E_WARNING', 'E_NOTICE',
         ];
     }
 
@@ -197,26 +198,25 @@ class CompleteReplyResponse extends Response
         if (preg_match('/(\$\w*)$/', $before_cursor, $matches)) {
             return [
                 'type' => 'variable',
-                'partial' => $matches[1] ?? ''
+                'partial' => $matches[1],
             ];
         }
 
         // Extrahiere partielles Wort
         $word_start = $cursor_pos;
         while ($word_start > 0 && (ctype_alnum($code[$word_start - 1]) || $code[$word_start - 1] === '_')) {
-            $word_start--;
+            --$word_start;
         }
 
         return [
             'type' => 'function',
-            'partial' => substr($code, $word_start, $cursor_pos - $word_start)
+            'partial' => substr($code, $word_start, $cursor_pos - $word_start),
         ];
     }
 
-
     private function filterMatches(array $candidates, string $partial): array
     {
-        if (empty($partial)) {
+        if ($partial === '' || $partial === '0') {
             return array_slice($candidates, 0, 50);
         }
 
@@ -228,20 +228,29 @@ class CompleteReplyResponse extends Response
 
             // Exakte Übereinstimmung am Anfang hat höchste Priorität
             if (str_starts_with($candidate_lower, $partial_lower)) {
-                $matches[] = ['text' => $candidate, 'score' => 100];
+                $matches[] = [
+                    'text' => $candidate,
+                    'score' => 100,
+                ];
             }
             // Substring-Übereinstimmung
             elseif (str_contains($candidate_lower, $partial_lower)) {
-                $matches[] = ['text' => $candidate, 'score' => 50];
+                $matches[] = [
+                    'text' => $candidate,
+                    'score' => 50,
+                ];
             }
             // Fuzzy-Matching (vereinfacht)
             elseif ($this->fuzzyMatch($candidate_lower, $partial_lower)) {
-                $matches[] = ['text' => $candidate, 'score' => 25];
+                $matches[] = [
+                    'text' => $candidate,
+                    'score' => 25,
+                ];
             }
         }
 
         // Sortiere nach Score
-        usort($matches, fn($a, $b) => $b['score'] <=> $a['score']);
+        usort($matches, fn (array $a, array $b): int => $b['score'] <=> $a['score']);
 
         return array_slice(array_column($matches, 'text'), 0, 50);
     }
@@ -251,17 +260,21 @@ class CompleteReplyResponse extends Response
         $text_len = strlen($text);
         $pattern_len = strlen($pattern);
 
-        if ($pattern_len === 0) return true;
-        if ($text_len === 0) return false;
+        if ($pattern_len === 0) {
+            return true;
+        }
+        if ($text_len === 0) {
+            return false;
+        }
 
         $text_idx = 0;
         $pattern_idx = 0;
 
         while ($text_idx < $text_len && $pattern_idx < $pattern_len) {
             if ($text[$text_idx] === $pattern[$pattern_idx]) {
-                $pattern_idx++;
+                ++$pattern_idx;
             }
-            $text_idx++;
+            ++$text_idx;
         }
 
         return $pattern_idx === $pattern_len;

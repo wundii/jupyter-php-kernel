@@ -17,13 +17,11 @@ class ShellMessageHandler extends MessageHandler implements IRequestHandler
     public const INSPECT_REQUEST = 'inspect_request';
     public const KERNEL_INFO_REQUEST = 'kernel_info_request';
 
-
     protected const ACTION_MAP = [
         self::COMPLETE_REQUEST => CompleteAction::class,
         self::EXECUTE_REQUEST => ExecuteAction::class,
         self::INSPECT_REQUEST => InspectAction::class,
         self::KERNEL_INFO_REQUEST => KernelInfoAction::class,
-
     ];
 
     public function handle(Request $request): void

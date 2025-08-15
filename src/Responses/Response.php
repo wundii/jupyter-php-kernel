@@ -17,7 +17,6 @@ abstract class Response
     public const KERNEL_INFO_REPLY = 'kernel_info_reply';
     public const STATUS = 'status';
 
-
     protected string $type;
     protected array $content = [];
     protected array $header = [];

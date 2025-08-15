@@ -22,10 +22,10 @@ class InspectReplyResponse extends Response
         $inspection_data = $this->inspectCode($code, $cursor_pos, $detail_level);
 
         $content = [
-            'status' => $inspection_data ? 'ok' : 'error',
-            'found' => !empty($inspection_data),
+            'status' => $inspection_data !== [] ? 'ok' : 'error',
+            'found' => $inspection_data !== [],
             'data' => $inspection_data,
-            'metadata' => new \stdClass()
+            'metadata' => new \stdClass(),
         ];
 
         parent::__construct(self::INSPECT_REPLY, $request, $content);
@@ -35,7 +35,7 @@ class InspectReplyResponse extends Response
     {
         $symbol = $this->extractSymbol($code, $cursor_pos);
 
-        if (empty($symbol)) {
+        if ($symbol === '' || $symbol === '0') {
             return [];
         }
 
@@ -52,25 +52,25 @@ class InspectReplyResponse extends Response
         }
         // 3. PHP-Konstanten
         elseif (defined($symbol)) {
-            $inspection_data = $this->inspectConstant($symbol, $detail_level);
+            $inspection_data = $this->inspectConstant($symbol);
         }
         // 4. Methoden-Aufrufe analysieren
         elseif ($this->isMethodCall($code, $cursor_pos)) {
             $method_info = $this->extractMethodCall($code, $cursor_pos);
             if ($method_info) {
-                $inspection_data = $this->inspectMethod($method_info, $detail_level);
+                $inspection_data = $this->inspectMethod($method_info);
             }
         }
         // 5. Properties analysieren
         elseif ($this->isPropertyAccess($code, $cursor_pos)) {
             $property_info = $this->extractPropertyAccess($code, $cursor_pos);
             if ($property_info) {
-                $inspection_data = $this->inspectProperty($property_info, $detail_level);
+                $inspection_data = $this->inspectProperty($property_info);
             }
         }
         // 6. PHP-Keywords und Sprachkonstrukte
         else {
-            $inspection_data = $this->inspectKeyword($symbol, $detail_level);
+            $inspection_data = $this->inspectKeyword($symbol);
         }
 
         return $inspection_data;
@@ -99,12 +99,12 @@ class InspectReplyResponse extends Response
 
         // Gehe rückwärts zum Wortanfang
         while ($start > 0 && isset($code[$start - 1]) && (ctype_alnum($code[$start - 1]) || $code[$start - 1] === '_' || $code[$start - 1] === '\\')) {
-            $start--;
+            --$start;
         }
 
         // Gehe vorwärts zum Wortende
         while ($end < $length && isset($code[$end]) && (ctype_alnum($code[$end]) || $code[$end] === '_' || $code[$end] === '\\')) {
-            $end++;
+            ++$end;
         }
 
         return substr($code, $start, $end - $start);
@@ -114,15 +114,15 @@ class InspectReplyResponse extends Response
     private function inspectFunction(string $function_name, int $detail_level): array
     {
         try {
-            $reflection = new ReflectionFunction($function_name);
+            $reflectionFunction = new ReflectionFunction($function_name);
 
             $data = [
-                'text/plain' => $this->formatFunctionInfo($reflection, $detail_level),
-                'text/html' => $this->formatFunctionInfoHtml($reflection, $detail_level)
+                'text/plain' => $this->formatFunctionInfo($reflectionFunction, $detail_level),
+                'text/html' => $this->formatFunctionInfoHtml($reflectionFunction, $detail_level),
             ];
 
             return $data;
-        } catch (ReflectionException $e) {
+        } catch (ReflectionException $reflectionException) {
             return [];
         }
     }
@@ -130,31 +130,31 @@ class InspectReplyResponse extends Response
     private function inspectClass(string $class_name, int $detail_level): array
     {
         try {
-            $reflection = new ReflectionClass($class_name);
+            $reflectionClass = new ReflectionClass($class_name);
 
             $data = [
-                'text/plain' => $this->formatClassInfo($reflection, $detail_level),
-                'text/html' => $this->formatClassInfoHtml($reflection, $detail_level)
+                'text/plain' => $this->formatClassInfo($reflectionClass, $detail_level),
+                'text/html' => $this->formatClassInfoHtml($reflectionClass, $detail_level),
             ];
 
             return $data;
-        } catch (ReflectionException $e) {
+        } catch (ReflectionException $reflectionException) {
             return [];
         }
     }
 
-    private function inspectConstant(string $constant_name, int $detail_level): array
+    private function inspectConstant(string $constant_name): array
     {
         $value = constant($constant_name);
         $type = gettype($value);
 
         $info = "Konstante: {$constant_name}\n";
         $info .= "Typ: {$type}\n";
-        $info .= "Wert: " . var_export($value, true) . "\n";
+        $info .= 'Wert: ' . var_export($value, true) . "\n";
 
         return [
             'text/plain' => $info,
-            'text/html' => "<strong>Konstante:</strong> {$constant_name}<br><strong>Typ:</strong> {$type}<br><strong>Wert:</strong> " . htmlspecialchars(var_export($value, true))
+            'text/html' => "<strong>Konstante:</strong> {$constant_name}<br><strong>Typ:</strong> {$type}<br><strong>Wert:</strong> " . htmlspecialchars(var_export($value, true)),
         ];
     }
 
@@ -178,14 +178,13 @@ class InspectReplyResponse extends Response
         if (preg_match('/(\$\w+|\w+)->(\w*)$/', $before_cursor, $matches)) {
             return [
                 'object' => $matches[1],
-                'method' => $matches[2] ?? ''
+                'method' => $matches[2],
             ];
         }
         return null;
     }
 
-
-    private function inspectMethod(array $method_info, int $detail_level): array
+    private function inspectMethod(array $method_info): array
     {
         // Vereinfachte Implementierung - in der Praxis würden Sie
         // den Objekttyp durch statische Analyse bestimmen
@@ -195,7 +194,7 @@ class InspectReplyResponse extends Response
 
         return [
             'text/plain' => $info,
-            'text/html' => "<strong>Methode:</strong> {$method_info['method']}<br><strong>Objekt:</strong> {$method_info['object']}<br><em>Hinweis: Detaillierte Methodeninspektion erfordert Typisierung</em>"
+            'text/html' => "<strong>Methode:</strong> {$method_info['method']}<br><strong>Objekt:</strong> {$method_info['object']}<br><em>Hinweis: Detaillierte Methodeninspektion erfordert Typisierung</em>",
         ];
     }
 
@@ -219,13 +218,13 @@ class InspectReplyResponse extends Response
         if (preg_match('/(\$\w+)->(\w*)$/', $before_cursor, $matches)) {
             return [
                 'object' => $matches[1],
-                'property' => $matches[2] ?? ''
+                'property' => $matches[2],
             ];
         }
         return null;
     }
 
-    private function inspectProperty(array $property_info, int $detail_level): array
+    private function inspectProperty(array $property_info): array
     {
         $info = "Property: {$property_info['property']}\n";
         $info .= "Objekt: {$property_info['object']}\n";
@@ -233,11 +232,11 @@ class InspectReplyResponse extends Response
 
         return [
             'text/plain' => $info,
-            'text/html' => "<strong>Property:</strong> {$property_info['property']}<br><strong>Objekt:</strong> {$property_info['object']}<br><em>Hinweis: Detaillierte Property-Inspektion erfordert Typisierung</em>"
+            'text/html' => "<strong>Property:</strong> {$property_info['property']}<br><strong>Objekt:</strong> {$property_info['object']}<br><em>Hinweis: Detaillierte Property-Inspektion erfordert Typisierung</em>",
         ];
     }
 
-    private function inspectKeyword(string $keyword, int $detail_level): array
+    private function inspectKeyword(string $keyword): array
     {
         $keywords_info = [
             'class' => 'PHP-Schlüsselwort zum Definieren einer Klasse',
@@ -267,44 +266,44 @@ class InspectReplyResponse extends Response
             'try' => 'Exception-Handling Block',
             'catch' => 'Exception-Behandlung',
             'finally' => 'Code der immer ausgeführt wird',
-            'throw' => 'Exception werfen'
+            'throw' => 'Exception werfen',
         ];
 
         if (isset($keywords_info[$keyword])) {
             return [
                 'text/plain' => "PHP-Schlüsselwort: {$keyword}\n\n{$keywords_info[$keyword]}",
-                'text/html' => "<strong>PHP-Schlüsselwort:</strong> {$keyword}<br><br>{$keywords_info[$keyword]}"
+                'text/html' => "<strong>PHP-Schlüsselwort:</strong> {$keyword}<br><br>{$keywords_info[$keyword]}",
             ];
         }
 
         return [];
     }
 
-    private function formatFunctionInfo(ReflectionFunction $reflection, int $detail_level): string
+    private function formatFunctionInfo(ReflectionFunction $reflectionFunction, int $detail_level): string
     {
-        $info = "Funktion: " . $reflection->getName() . "\n";
-        $info .= "Signatur: " . $this->buildFunctionSignature($reflection) . "\n\n";
+        $info = 'Funktion: ' . $reflectionFunction->getName() . "\n";
+        $info .= 'Signatur: ' . $this->buildFunctionSignature($reflectionFunction) . "\n\n";
 
-        if ($reflection->getDocComment()) {
-            $info .= "Dokumentation:\n" . $this->cleanDocComment($reflection->getDocComment()) . "\n\n";
+        if ($reflectionFunction->getDocComment()) {
+            $info .= "Dokumentation:\n" . $this->cleanDocComment($reflectionFunction->getDocComment()) . "\n\n";
         }
 
         if ($detail_level > 0) {
-            $info .= "Datei: " . ($reflection->getFileName() ?: 'Built-in') . "\n";
-            if ($reflection->getStartLine()) {
-                $info .= "Zeile: " . $reflection->getStartLine() . "\n";
+            $info .= 'Datei: ' . ($reflectionFunction->getFileName() ?: 'Built-in') . "\n";
+            if ($reflectionFunction->getStartLine()) {
+                $info .= 'Zeile: ' . $reflectionFunction->getStartLine() . "\n";
             }
 
-            $parameters = $reflection->getParameters();
+            $parameters = $reflectionFunction->getParameters();
             if ($parameters) {
                 $info .= "\nParameter:\n";
-                foreach ($parameters as $param) {
-                    $info .= "  - \${$param->getName()}";
-                    if ($param->hasType()) {
-                        $info .= " (" . $param->getType() . ")";
+                foreach ($parameters as $parameter) {
+                    $info .= "  - \${$parameter->getName()}";
+                    if ($parameter->hasType()) {
+                        $info .= ' (' . $parameter->getType() . ')';
                     }
-                    if ($param->isDefaultValueAvailable()) {
-                        $info .= " = " . var_export($param->getDefaultValue(), true);
+                    if ($parameter->isDefaultValueAvailable()) {
+                        $info .= ' = ' . var_export($parameter->getDefaultValue(), true);
                     }
                     $info .= "\n";
                 }
@@ -314,75 +313,75 @@ class InspectReplyResponse extends Response
         return $info;
     }
 
-    private function formatFunctionInfoHtml(ReflectionFunction $reflection, int $detail_level): string
+    private function formatFunctionInfoHtml(ReflectionFunction $reflectionFunction, int $detail_level): string
     {
-        $html = "<h3>Funktion: " . htmlspecialchars($reflection->getName()) . "</h3>";
-        $html .= "<p><strong>Signatur:</strong> <code>" . htmlspecialchars($this->buildFunctionSignature($reflection)) . "</code></p>";
+        $html = '<h3>Funktion: ' . htmlspecialchars($reflectionFunction->getName()) . '</h3>';
+        $html .= '<p><strong>Signatur:</strong> <code>' . htmlspecialchars($this->buildFunctionSignature($reflectionFunction)) . '</code></p>';
 
-        if ($reflection->getDocComment()) {
-            $html .= "<h4>Dokumentation:</h4>";
-            $html .= "<pre>" . htmlspecialchars($this->cleanDocComment($reflection->getDocComment())) . "</pre>";
+        if ($reflectionFunction->getDocComment()) {
+            $html .= '<h4>Dokumentation:</h4>';
+            $html .= '<pre>' . htmlspecialchars($this->cleanDocComment($reflectionFunction->getDocComment())) . '</pre>';
         }
 
         if ($detail_level > 0) {
-            $html .= "<p><strong>Datei:</strong> " . htmlspecialchars($reflection->getFileName() ?: 'Built-in') . "</p>";
-            if ($reflection->getStartLine()) {
-                $html .= "<p><strong>Zeile:</strong> " . $reflection->getStartLine() . "</p>";
+            $html .= '<p><strong>Datei:</strong> ' . htmlspecialchars($reflectionFunction->getFileName() ?: 'Built-in') . '</p>';
+            if ($reflectionFunction->getStartLine()) {
+                $html .= '<p><strong>Zeile:</strong> ' . $reflectionFunction->getStartLine() . '</p>';
             }
 
-            $parameters = $reflection->getParameters();
+            $parameters = $reflectionFunction->getParameters();
             if ($parameters) {
-                $html .= "<h4>Parameter:</h4><ul>";
-                foreach ($parameters as $param) {
-                    $html .= "<li><code>\${$param->getName()}</code>";
-                    if ($param->hasType()) {
-                        $html .= " (" . htmlspecialchars($param->getType()->getName()) . ")";
+                $html .= '<h4>Parameter:</h4><ul>';
+                foreach ($parameters as $parameter) {
+                    $html .= "<li><code>\${$parameter->getName()}</code>";
+                    if ($parameter->hasType()) {
+                        $html .= ' (' . htmlspecialchars((string) $parameter->getType()) . ')';
                     }
-                    if ($param->isDefaultValueAvailable()) {
-                        $html .= " = " . htmlspecialchars(var_export($param->getDefaultValue(), true));
+                    if ($parameter->isDefaultValueAvailable()) {
+                        $html .= ' = ' . htmlspecialchars(var_export($parameter->getDefaultValue(), true));
                     }
-                    $html .= "</li>";
+                    $html .= '</li>';
                 }
-                $html .= "</ul>";
+                $html .= '</ul>';
             }
         }
 
         return $html;
     }
 
-    private function formatClassInfo(ReflectionClass $reflection, int $detail_level): string
+    private function formatClassInfo(ReflectionClass $reflectionClass, int $detail_level): string
     {
-        $info = "Klasse: " . $reflection->getName() . "\n";
+        $info = 'Klasse: ' . $reflectionClass->getName() . "\n";
 
-        if ($reflection->getParentClass()) {
-            $info .= "Erbt von: " . $reflection->getParentClass()->getName() . "\n";
+        if ($reflectionClass->getParentClass()) {
+            $info .= 'Erbt von: ' . $reflectionClass->getParentClass()->getName() . "\n";
         }
 
-        $interfaces = $reflection->getInterfaces();
+        $interfaces = $reflectionClass->getInterfaces();
         if ($interfaces) {
-            $info .= "Implementiert: " . implode(', ', array_keys($interfaces)) . "\n";
+            $info .= 'Implementiert: ' . implode(', ', array_keys($interfaces)) . "\n";
         }
 
-        if ($reflection->getDocComment()) {
-            $info .= "\nDokumentation:\n" . $this->cleanDocComment($reflection->getDocComment()) . "\n";
+        if ($reflectionClass->getDocComment()) {
+            $info .= "\nDokumentation:\n" . $this->cleanDocComment($reflectionClass->getDocComment()) . "\n";
         }
 
         if ($detail_level > 0) {
-            $info .= "\nDatei: " . ($reflection->getFileName() ?: 'Built-in') . "\n";
+            $info .= "\nDatei: " . ($reflectionClass->getFileName() ?: 'Built-in') . "\n";
 
-            $methods = $reflection->getMethods(ReflectionMethod::IS_PUBLIC);
+            $methods = $reflectionClass->getMethods(ReflectionMethod::IS_PUBLIC);
             if ($methods) {
                 $info .= "\nÖffentliche Methoden:\n";
                 foreach ($methods as $method) {
-                    $info .= "  - " . $method->getName() . "()\n";
+                    $info .= '  - ' . $method->getName() . "()\n";
                 }
             }
 
-            $properties = $reflection->getProperties(ReflectionProperty::IS_PUBLIC);
+            $properties = $reflectionClass->getProperties(ReflectionProperty::IS_PUBLIC);
             if ($properties) {
                 $info .= "\nÖffentliche Properties:\n";
                 foreach ($properties as $property) {
-                    $info .= "  - \$" . $property->getName() . "\n";
+                    $info .= '  - $' . $property->getName() . "\n";
                 }
             }
         }
@@ -390,70 +389,70 @@ class InspectReplyResponse extends Response
         return $info;
     }
 
-    private function formatClassInfoHtml(ReflectionClass $reflection, int $detail_level): string
+    private function formatClassInfoHtml(ReflectionClass $reflectionClass, int $detail_level): string
     {
-        $html = "<h3>Klasse: " . htmlspecialchars($reflection->getName()) . "</h3>";
+        $html = '<h3>Klasse: ' . htmlspecialchars($reflectionClass->getName()) . '</h3>';
 
-        if ($reflection->getParentClass()) {
-            $html .= "<p><strong>Erbt von:</strong> " . htmlspecialchars($reflection->getParentClass()->getName()) . "</p>";
+        if ($reflectionClass->getParentClass()) {
+            $html .= '<p><strong>Erbt von:</strong> ' . htmlspecialchars($reflectionClass->getParentClass()->getName()) . '</p>';
         }
 
-        $interfaces = $reflection->getInterfaces();
+        $interfaces = $reflectionClass->getInterfaces();
         if ($interfaces) {
-            $html .= "<p><strong>Implementiert:</strong> " . htmlspecialchars(implode(', ', array_keys($interfaces))) . "</p>";
+            $html .= '<p><strong>Implementiert:</strong> ' . htmlspecialchars(implode(', ', array_keys($interfaces))) . '</p>';
         }
 
-        if ($reflection->getDocComment()) {
-            $html .= "<h4>Dokumentation:</h4>";
-            $html .= "<pre>" . htmlspecialchars($this->cleanDocComment($reflection->getDocComment())) . "</pre>";
+        if ($reflectionClass->getDocComment()) {
+            $html .= '<h4>Dokumentation:</h4>';
+            $html .= '<pre>' . htmlspecialchars($this->cleanDocComment($reflectionClass->getDocComment())) . '</pre>';
         }
 
         if ($detail_level > 0) {
-            $html .= "<p><strong>Datei:</strong> " . htmlspecialchars($reflection->getFileName() ?: 'Built-in') . "</p>";
+            $html .= '<p><strong>Datei:</strong> ' . htmlspecialchars($reflectionClass->getFileName() ?: 'Built-in') . '</p>';
 
-            $methods = $reflection->getMethods(ReflectionMethod::IS_PUBLIC);
+            $methods = $reflectionClass->getMethods(ReflectionMethod::IS_PUBLIC);
             if ($methods) {
-                $html .= "<h4>Öffentliche Methoden:</h4><ul>";
+                $html .= '<h4>Öffentliche Methoden:</h4><ul>';
                 foreach ($methods as $method) {
-                    $html .= "<li><code>" . htmlspecialchars($method->getName()) . "()</code></li>";
+                    $html .= '<li><code>' . htmlspecialchars($method->getName()) . '()</code></li>';
                 }
-                $html .= "</ul>";
+                $html .= '</ul>';
             }
 
-            $properties = $reflection->getProperties(ReflectionProperty::IS_PUBLIC);
+            $properties = $reflectionClass->getProperties(ReflectionProperty::IS_PUBLIC);
             if ($properties) {
-                $html .= "<h4>Öffentliche Properties:</h4><ul>";
+                $html .= '<h4>Öffentliche Properties:</h4><ul>';
                 foreach ($properties as $property) {
-                    $html .= "<li><code>\$" . htmlspecialchars($property->getName()) . "</code></li>";
+                    $html .= '<li><code>$' . htmlspecialchars($property->getName()) . '</code></li>';
                 }
-                $html .= "</ul>";
+                $html .= '</ul>';
             }
         }
 
         return $html;
     }
 
-    private function buildFunctionSignature(ReflectionFunction $reflection): string
+    private function buildFunctionSignature(ReflectionFunction $reflectionFunction): string
     {
         $params = [];
-        foreach ($reflection->getParameters() as $param) {
+        foreach ($reflectionFunction->getParameters() as $parameter) {
             $paramStr = '';
-            if ($param->hasType()) {
-                $paramStr .= $param->getType() . ' ';
+            if ($parameter->hasType()) {
+                $paramStr .= $parameter->getType() . ' ';
             }
-            $paramStr .= '$' . $param->getName();
-            if ($param->isDefaultValueAvailable()) {
-                $paramStr .= ' = ' . var_export($param->getDefaultValue(), true);
+            $paramStr .= '$' . $parameter->getName();
+            if ($parameter->isDefaultValueAvailable()) {
+                $paramStr .= ' = ' . var_export($parameter->getDefaultValue(), true);
             }
             $params[] = $paramStr;
         }
 
         $returnType = '';
-        if ($reflection->hasReturnType()) {
-            $returnType = ': ' . $reflection->getReturnType();
+        if ($reflectionFunction->hasReturnType()) {
+            $returnType = ': ' . $reflectionFunction->getReturnType();
         }
 
-        return $reflection->getName() . '(' . implode(', ', $params) . ')' . $returnType;
+        return $reflectionFunction->getName() . '(' . implode(', ', $params) . ')' . $returnType;
     }
 
     private function cleanDocComment(string $docComment): string

@@ -9,9 +9,9 @@ use Wundii\JupyterPhpKernel\Responses\InspectReplyResponse;
 
 class InspectAction extends Action
 {
-    public function run(Request $request): void
+    protected function run(Request $request): void
     {
-        $kernelInfoReplyResponse = new InspectReplyResponse($request);
-        $this->kernel->sendShellMessage($kernelInfoReplyResponse);
+        $inspectReplyResponse = new InspectReplyResponse($request);
+        $this->kernel->sendShellMessage($inspectReplyResponse);
     }
 }
