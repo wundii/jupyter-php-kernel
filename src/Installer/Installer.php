@@ -19,7 +19,7 @@ class Installer
         copy(__DIR__ . '/logo-64x64.png', $kernel_path . '/logo-64x64.png');
     }
 
-    protected static function getInstallPath(): string
+    public static function getInstallPath(): string
     {
         $data_dir = shell_exec('jupyter --data-dir');
         $data_dir = trim($data_dir);
@@ -28,18 +28,23 @@ class Installer
             echo 'ERROR: Could not find jupyter data directory. Please ensure jupyter is installed';
         }
 
-        return $data_dir . '/kernels/php' . PHP_VERSION;
+        return $data_dir . '/kernels/php' . self::phpVersion();
     }
 
-    protected static function getKernelJSON(): array
+    public static function getKernelJSON(): array
     {
         return [
             'argv' => ['jupyter-php-kernel', '-r',  '-c', '{connection_file}'],
             'display_name' => 'PHP ' . PHP_VERSION,
-            'language' => 'php' . PHP_VERSION,
+            'language' => 'php' . self::phpVersion(),
             'metadata' => [
                 'debugger' => true,
             ],
         ];
+    }
+
+    public static function phpVersion(): string
+    {
+        return PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION;
     }
 }
