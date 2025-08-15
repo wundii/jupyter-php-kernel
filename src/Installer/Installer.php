@@ -34,7 +34,7 @@ class Installer
     public static function getKernelJSON(): array
     {
         return [
-            'argv' => ['jupyter-php-kernel', '-r',  '-c', '{connection_file}'],
+            'argv' => ['jupyter-php-kernel', '--php=php' . self::phpVersion(), '-r',  '-c', '{connection_file}'],
             'display_name' => 'PHP ' . PHP_VERSION,
             'language' => 'php' . self::phpVersion(),
             'metadata' => [
