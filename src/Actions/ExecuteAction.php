@@ -47,7 +47,9 @@ class ExecuteAction extends Action
             return 'Shell execution failed or returned no output.';
         }
 
-        return $shellResponse;
+        $restartKernel = "<br><br><strong>!!! Restart Kernel !!!</strong>";
+
+        return $shellResponse . $restartKernel;
     }
 
     private function defaultRun(StreamOutput $streamOutput, string $code): string
