@@ -1,0 +1,54 @@
+{
+  "name": "wundii/jupyter-php-kernel",
+  "description": "PHP Kernel for Jupyter Notebooks",
+  "license": "MIT",
+  "require": {
+    "php": ">=8.2",
+    "ext-zmq": "*",
+    "psy/psysh": "^0.12",
+    "ramsey/uuid": "^4.1",
+    "react/zmq": "^0.4.0"
+  },
+  "require-dev": {
+    "phpstan/phpstan": "^2.1",
+    "phpunit/phpunit": "^11.5",
+    "rector/rector": "^2.1",
+    "symfony/var-dumper": "^6.4",
+    "symplify/easy-coding-standard": "^12.5"
+  },
+  "config": {
+    "optimize-autoloader": true,
+    "preferred-install": "dist",
+    "sort-packages": true
+  },
+  "autoload": {
+    "psr-4": {
+      "Wundii\\JupyterPhpKernel\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Tests\\": "tests/"
+    }
+  },
+  "scripts": {
+    "analyze": [
+      "vendor/bin/rector process --dry-run --ansi",
+      "vendor/bin/ecs check",
+      "@stan"
+    ],
+    "format": [
+      "vendor/bin/rector process",
+      "vendor/bin/ecs check --fix"
+    ],
+    "stan": "vendor/bin/phpstan analyze",
+    "qa": [
+      "@analyze",
+      "@test"
+    ],
+    "test": "vendor/bin/phpunit"
+  },
+  "bin": ["bin/jupyter-php-kernel"],
+  "minimum-stability": "stable",
+  "prefer-stable": true
+}

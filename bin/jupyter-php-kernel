@@ -1,0 +1,23 @@
+#!/usr/bin/env php
+<?php
+
+if (file_exists(__DIR__.'/../../../autoload.php')) {
+    require __DIR__.'/../../../autoload.php';
+} else {
+    require __DIR__.'/../vendor/autoload.php';
+}
+
+$opts = getopt('irc:', ['install', 'run', 'connection_file:']);
+
+if (isset($opts['install']) || isset($opts['i'])) {
+    Wundii\JupyterPhpKernel\Installer\Installer::install();
+    exit(0);
+}
+
+if (isset($opts['run']) || isset($opts['r'])) {
+    $connection_file_path = $opts['connection_file'] ?? $opts['c'];
+    $connection_details = (new Wundii\JupyterPhpKernel\ConnectionDetails($connection_file_path))->read();
+    $kernel = new Wundii\JupyterPhpKernel\Kernel($connection_details);
+
+    $kernel->run();
+}
