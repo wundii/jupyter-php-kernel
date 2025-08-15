@@ -36,10 +36,8 @@ class Installer
         return [
             'argv' => ['jupyter-php-kernel', '--php=php' . self::phpVersion(), '-r',  '-c', '{connection_file}'],
             'display_name' => 'PHP ' . PHP_VERSION,
-            'language' => 'php' . self::phpVersion(),
-            'metadata' => [
-                'debugger' => true,
-            ],
+            'language' => 'php',
+            'mimetype' => 'text/x-php',
         ];
     }
 
