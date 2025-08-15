@@ -8,6 +8,7 @@ use Exception;
 use Symfony\Component\Console\Output\StreamOutput;
 use Wundii\JupyterPhpKernel\Requests\Request;
 use Wundii\JupyterPhpKernel\Responses\ExecuteReplyResponse;
+use Wundii\JupyterPhpKernel\Responses\ExecuteRestartKernelResponse;
 use Wundii\JupyterPhpKernel\Responses\ExecuteResultResponse;
 
 class ExecuteAction extends Action
@@ -57,6 +58,7 @@ class ExecuteAction extends Action
             new ExecuteResultResponse($this->kernel->execution_count, $output, $request)
         );
         $this->kernel->sendShellMessage(new ExecuteReplyResponse($this->kernel->execution_count, 'ok', $request));
+        #$this->kernel->sendShellMessage(new ExecuteRestartKernelResponse($request));
     }
 
     private function getOutput(): StreamOutput
