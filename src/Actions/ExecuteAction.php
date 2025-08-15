@@ -15,14 +15,14 @@ class ExecuteAction extends Action
 {
     protected function run(Request $request): void
     {
-        $output = $this->getOutput();
-        $this->kernel->shell->setOutput($output);
+        $streamOutput = $this->getStreamOutput();
+        $this->kernel->shell->setOutput($streamOutput);
         try {
             $code = $this->cleanCode($request->content['code']);
 
             $output = match (true) {
                 str_starts_with($code, '!composer') => $this->composerRun($code),
-                default => $this->defaultRun($code),
+                default => $this->defaultRun($streamOutput, $code),
             };
 
         } catch (Exception $exception) {
@@ -42,13 +42,17 @@ class ExecuteAction extends Action
             $code = preg_replace('/^!composer(\s+)/i', '!composer global$1', $code);
         }
 
-        return shell_exec(preg_replace('/^!/', '', $code) . ' 2>&1');
+        $shellResponse = shell_exec(preg_replace('/^!/', '', $code) . ' 2>&1');
+        if (!is_string($shellResponse)) {
+            return 'Shell execution failed or returned no output.';
+        }
+
+        return $shellResponse;
     }
 
-    private function defaultRun(string $code): string
+    private function defaultRun(StreamOutput $streamOutput, string $code): string
     {
-        $output = $this->getOutput();
-        $stream = $output->getStream();
+        $stream = $streamOutput->getStream();
 
         $ret = $this->kernel->shell->execute($code);
         $this->kernel->shell->writeReturnValue($ret, true);
@@ -71,7 +75,7 @@ class ExecuteAction extends Action
         return $output;
     }
 
-    private function getOutput(): StreamOutput
+    private function getStreamOutput(): StreamOutput
     {
         $stream = fopen('php://memory', 'w+');
         return new StreamOutput($stream, OutputInterface::VERBOSITY_NORMAL, false);
