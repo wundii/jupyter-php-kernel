@@ -3,7 +3,7 @@
   "description": "PHP Kernel for Jupyter Notebooks",
   "license": "MIT",
   "require": {
-    "php": ">=8.2",
+    "php": ">=8.1",
     "ext-zmq": "*",
     "psy/psysh": "^0.12",
     "ramsey/uuid": "^4.1",
