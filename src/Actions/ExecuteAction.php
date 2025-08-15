@@ -39,10 +39,15 @@ class ExecuteAction extends Action
     private function bashRun(string $code): string
     {
         $output = '';
+        $needKernelRestart = false;
 
         foreach (explode("\n", $code) as $line) {
             if (preg_match('/^!composer\b(?!.*\bglobal\b)/i', $line)) {
                 $line = preg_replace('/^!composer(\s+)/i', '!composer global$1', $line);
+            }
+
+            if (preg_match('/^!composer\s+/', $line)) {
+                $needKernelRestart = true;
             }
 
             $shellResponse = shell_exec(preg_replace('/^!/', '', $line) . ' 2>&1');
@@ -53,7 +58,7 @@ class ExecuteAction extends Action
             $output .= $shellResponse . "\n";
         }
 
-        $restartKernel = "\n\n!!! Restart Kernel !!!\n\n";
+        $restartKernel = $needKernelRestart ? "\n\n!!! Restart Kernel !!!\n\n" : '';
 
         return $output . $restartKernel;
     }
