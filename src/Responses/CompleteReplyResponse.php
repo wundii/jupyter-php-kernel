@@ -9,47 +9,6 @@ use Wundii\JupyterPhpKernel\Requests\Request;
 
 class CompleteReplyResponse extends Response
 {
-    // public function __construct(Request $request)
-    // {
-    //     $code = $request->content['code'] ?? '';
-    //     $cursor_pos = $request->content['cursor_pos'] ?? 0;
-    //
-    //     // Einfache PHP-Autovervollständigung - hier können Sie eine
-    //     // erweiterte Implementierung mit Reflection oder PHPStan hinzufügen
-    //     $matches = $this->getCompletions($code, $cursor_pos);
-    //
-    //     $content = [
-    //         'matches' => $matches,
-    //         'cursor_start' => max(0, $cursor_pos - 10), // Vereinfacht
-    //         'cursor_end' => $cursor_pos,
-    //         'metadata' => new \stdClass(),
-    //         'status' => 'ok',
-    //     ];
-    //
-    //     parent::__construct(self::COMPLETE_REPLY, $request, $content);
-    // }
-    //
-    // private function getCompletions(string $code, int $cursor_pos): array
-    // {
-    //     // Basis-PHP-Funktionen für Autovervollständigung
-    //     $php_functions = [
-    //         'array_map', 'array_filter', 'array_merge', 'count', 'strlen',
-    //         'substr', 'explode', 'implode', 'trim', 'strtolower', 'strtoupper'
-    //     ];
-    //
-    //     // Extrahieren Sie das aktuelle Wort unter dem Cursor
-    //     $word_start = $cursor_pos;
-    //     while ($word_start > 0 && ctype_alnum($code[$word_start - 1])) {
-    //         $word_start--;
-    //     }
-    //
-    //     $current_word = substr($code, $word_start, $cursor_pos - $word_start);
-    //
-    //     // Filtern Sie passende Funktionen
-    //     return array_filter($php_functions, function($func) use ($current_word) {
-    //         return empty($current_word) || str_starts_with($func, $current_word);
-    //     });
-    // }
     private array $builtInFunctions;
     private array $builtInFunctionsUser;
     private array $builtInClasses;
@@ -93,21 +52,6 @@ class CompleteReplyResponse extends Response
         $type = $context['type'];
 
         switch ($type) {
-            // case 'method':
-            //     $completions = $this->getMethodCompletions($context['object'], $partial);
-            //     break;
-            // case 'static_method':
-            //     $completions = $this->getStaticMethodCompletions($context['class'], $partial);
-            //     break;
-            // case 'property':
-            //     $completions = $this->getPropertyCompletions($context['object'], $partial);
-            //     break;
-            // case 'class':
-            //     $completions = $this->getClassCompletions($partial);
-            //     break;
-            // case 'function':
-            //     $completions = $this->getFunctionCompletions($partial);
-            //     break;
             case 'variable':
                 $completions = $this->getVariableCompletions($partial);
                 break;
@@ -121,13 +65,11 @@ class CompleteReplyResponse extends Response
 
     private function getCursorBounds(string $code, int $cursor_pos): array
     {
-        // Finde Start des aktuellen Wortes
         $start = $cursor_pos;
         while ($start > 0 && (ctype_alnum($code[$start - 1]) || in_array($code[$start - 1], ['_', '$', '\\'], true))) {
             --$start;
         }
 
-        // Finde Ende des aktuellen Wortes
         $end = $cursor_pos;
         $code_len = strlen($code);
         while ($end < $code_len && (ctype_alnum($code[$end]) || in_array($code[$end], ['_', '$', '\\'], true))) {
@@ -169,8 +111,7 @@ class CompleteReplyResponse extends Response
         $keywords = [
             'abstract', 'and', 'array', 'as', 'break', 'callable', 'case', 'catch',
             'class', 'clone', 'const', 'continue', 'declare', 'default', 'die', 'do',
-            'echo', 'else', 'elseif', 'empty', 'enddeclare', 'endfor', 'endforeach',
-            'endif', 'endswitch', 'endwhile', 'eval', 'exit', 'extends', 'false',
+            'echo', 'else', 'elseif', 'empty', 'eval', 'exit', 'extends', 'false',
             'final', 'finally', 'for', 'foreach', 'function', 'global', 'goto',
             'if', 'implements', 'include', 'include_once', 'instanceof', 'insteadof',
             'interface', 'isset', 'list', 'match', 'namespace', 'new', 'null', 'or',
@@ -202,7 +143,6 @@ class CompleteReplyResponse extends Response
             ];
         }
 
-        // Extrahiere partielles Wort
         $word_start = $cursor_pos;
         while ($word_start > 0 && (ctype_alnum($code[$word_start - 1]) || $code[$word_start - 1] === '_')) {
             --$word_start;
@@ -226,30 +166,28 @@ class CompleteReplyResponse extends Response
         foreach ($candidates as $candidate) {
             $candidate_lower = strtolower($candidate);
 
-            // Exakte Übereinstimmung am Anfang hat höchste Priorität
-            if (str_starts_with($candidate_lower, $partial_lower)) {
-                $matches[] = [
-                    'text' => $candidate,
-                    'score' => 100,
-                ];
-            }
-            // Substring-Übereinstimmung
-            elseif (str_contains($candidate_lower, $partial_lower)) {
-                $matches[] = [
-                    'text' => $candidate,
-                    'score' => 50,
-                ];
-            }
-            // Fuzzy-Matching (vereinfacht)
-            elseif ($this->fuzzyMatch($candidate_lower, $partial_lower)) {
-                $matches[] = [
-                    'text' => $candidate,
-                    'score' => 25,
-                ];
+            switch (true) {
+                case str_starts_with($candidate_lower, $partial_lower):
+                    $matches[] = [
+                        'text' => $candidate,
+                        'score' => 100,
+                    ];
+                    break;
+                case str_contains($candidate_lower, $partial_lower):
+                    $matches[] = [
+                        'text' => $candidate,
+                        'score' => 50,
+                    ];
+                    break;
+                case $this->fuzzyMatch($candidate_lower, $partial_lower):
+                    $matches[] = [
+                        'text' => $candidate,
+                        'score' => 25,
+                    ];
+                    break;
             }
         }
 
-        // Sortiere nach Score
         usort($matches, fn (array $a, array $b): int => $b['score'] <=> $a['score']);
 
         return array_slice(array_column($matches, 'text'), 0, 50);

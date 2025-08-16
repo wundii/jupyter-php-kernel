@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Wundii\JupyterPhpKernel\Requests;
 
+use InvalidArgumentException;
+
 class Request
 {
     public array $ids;
@@ -40,7 +42,7 @@ class Request
      */
     protected function getIds(array $message): array
     {
-        return array_splice($message, 0, $this->getDelimeterIndex($message));
+        return array_splice($message, 0, $this->getDelimiterIndex($message));
     }
 
     /**
@@ -55,8 +57,13 @@ class Request
     /**
      * @param string[] $message
      */
-    protected function getDelimeterIndex(array $message): int|string|false
+    protected function getDelimiterIndex(array $message): int|string|false
     {
-        return array_search('<IDS|MSG>', $message, true);
+        $key = array_search('<IDS|MSG>', $message, true);
+        if ($key === false) {
+            throw new InvalidArgumentException('Invalid message format: <IDS|MSG> delimiter not found.');
+        }
+
+        return $key;
     }
 }

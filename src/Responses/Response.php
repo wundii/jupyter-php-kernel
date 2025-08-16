@@ -16,9 +16,9 @@ abstract class Response
     public const INSPECT_REPLY = 'inspect_reply';
     public const KERNEL_INFO_REPLY = 'kernel_info_reply';
     public const STATUS = 'status';
+    public array $content = [];
 
     protected string $type;
-    protected array $content = [];
     protected array $header = [];
     protected array $parent_header = [];
     protected array $metadata = [];
