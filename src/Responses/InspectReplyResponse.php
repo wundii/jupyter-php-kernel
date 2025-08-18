@@ -39,48 +39,20 @@ class InspectReplyResponse extends Response
             return [];
         }
 
-        // Versuche verschiedene Arten von Symbolen zu identifizieren
-        $inspection_data = [];
-
-        // 1. PHP-Funktionen
-        if (function_exists($symbol)) {
-            $inspection_data = $this->inspectFunction($symbol, $detail_level);
-        }
-        // 2. PHP-Klassen
-        elseif (class_exists($symbol)) {
-            $inspection_data = $this->inspectClass($symbol, $detail_level);
-        }
-        // 3. PHP-Konstanten
-        elseif (defined($symbol)) {
-            $inspection_data = $this->inspectConstant($symbol);
-        }
-        // 4. Methoden-Aufrufe analysieren
-        elseif ($this->isMethodCall($code, $cursor_pos)) {
-            $method_info = $this->extractMethodCall($code, $cursor_pos);
-            if ($method_info) {
-                $inspection_data = $this->inspectMethod($method_info);
-            }
-        }
-        // 5. Properties analysieren
-        elseif ($this->isPropertyAccess($code, $cursor_pos)) {
-            $property_info = $this->extractPropertyAccess($code, $cursor_pos);
-            if ($property_info) {
-                $inspection_data = $this->inspectProperty($property_info);
-            }
-        }
-        // 6. PHP-Keywords und Sprachkonstrukte
-        else {
-            $inspection_data = $this->inspectKeyword($symbol);
-        }
-
-        return $inspection_data;
+        return match (true) {
+            function_exists($symbol) => $this->inspectFunction($symbol, $detail_level),
+            class_exists($symbol) => $this->inspectClass($symbol, $detail_level),
+            defined($symbol) => $this->inspectConstant($symbol),
+            $this->isMethodCall($code, $cursor_pos) => $this->inspectMethod($this->extractMethodCall($code, $cursor_pos)),
+            $this->isPropertyAccess($code, $cursor_pos) => $this->inspectProperty($this->extractPropertyAccess($code, $cursor_pos)),
+            default => $this->inspectKeyword($symbol),
+        };
     }
 
     private function extractSymbol(string $code, int $cursor_pos): string
     {
         $length = strlen($code);
 
-        // Validiere cursor_pos
         if ($cursor_pos < 0) {
             $cursor_pos = 0;
         }
@@ -88,12 +60,10 @@ class InspectReplyResponse extends Response
             $cursor_pos = $length - 1;
         }
 
-        // Bei leerem Code oder ungültiger Position
         if ($length === 0 || $cursor_pos < 0) {
             return '';
         }
 
-        // Finde das Wort unter dem Cursor
         $start = $cursor_pos;
         $end = $cursor_pos;
 
@@ -138,7 +108,7 @@ class InspectReplyResponse extends Response
             ];
 
             return $data;
-        } catch (ReflectionException $reflectionException) {
+        } catch (ReflectionException) {
             return [];
         }
     }
@@ -184,10 +154,12 @@ class InspectReplyResponse extends Response
         return null;
     }
 
-    private function inspectMethod(array $method_info): array
+    private function inspectMethod(?array $method_info): array
     {
-        // Vereinfachte Implementierung - in der Praxis würden Sie
-        // den Objekttyp durch statische Analyse bestimmen
+        if ($method_info === null) {
+            return [];
+        }
+
         $info = "Methode: {$method_info['method']}\n";
         $info .= "Objekt: {$method_info['object']}\n";
         $info .= "Hinweis: Detaillierte Methodeninspektion erfordert Typisierung\n";
@@ -224,8 +196,12 @@ class InspectReplyResponse extends Response
         return null;
     }
 
-    private function inspectProperty(array $property_info): array
+    private function inspectProperty(?array $property_info): array
     {
+        if ($property_info === null) {
+            return [];
+        }
+
         $info = "Property: {$property_info['property']}\n";
         $info .= "Objekt: {$property_info['object']}\n";
         $info .= "Hinweis: Detaillierte Property-Inspektion erfordert Typisierung\n";
