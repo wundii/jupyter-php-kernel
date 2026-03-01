@@ -4,10 +4,8 @@
   "license": "MIT",
   "require": {
     "php": ">=8.1",
-    "ext-zmq": "*",
     "psy/psysh": "^0.12",
-    "ramsey/uuid": "^4.9",
-    "react/zmq": "^0.4.0"
+    "ramsey/uuid": "^4.9"
   },
   "require-dev": {
     "phpstan/phpstan": "^2.1",

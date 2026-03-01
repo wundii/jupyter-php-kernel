@@ -7,18 +7,11 @@ namespace Wundii\JupyterPhpKernel;
 use Psy\Configuration;
 use Psy\Shell;
 use Ramsey\Uuid\Uuid;
-use React\EventLoop\Loop;
-use React\EventLoop\LoopInterface;
-use React\ZMQ\Context;
-use React\ZMQ\SocketWrapper;
-use Wundii\JupyterPhpKernel\Handlers\HbMessageHandler;
-use Wundii\JupyterPhpKernel\Handlers\IMessageHandler;
-use Wundii\JupyterPhpKernel\Handlers\IRequestHandler;
+use Throwable;
 use Wundii\JupyterPhpKernel\Handlers\ShellMessageHandler;
 use Wundii\JupyterPhpKernel\Requests\Request;
 use Wundii\JupyterPhpKernel\Responses\Response;
 use Wundii\JupyterPhpKernel\Responses\StatusResponse;
-use ZMQ;
 
 class Kernel
 {
@@ -27,40 +20,34 @@ class Kernel
 
     public int $execution_count = 0;
     public Shell $shell;
-    private LoopInterface $loop;
-    private Context $context;
 
-    private SocketWrapper $iopub_socket;
-    private SocketWrapper $shell_socket;
-    private SocketWrapper $hb_socket;
+    private ShellMessageHandler $shellMessageHandler;
+    private string $currentShellReplyChannel = 'shell';
 
     public function __construct(ConnectionDetails $connectionDetails)
     {
         $this->connection_details = $connectionDetails;
         $this->session_id = Uuid::uuid4()->toString();
         $this->shell = new Shell($this->getConfig());
+        $this->shellMessageHandler = new ShellMessageHandler($this);
     }
 
     public function run(): void
     {
-        $this->loop = Loop::get();
-        $this->context = new Context($this->loop);
+        $stdin = fopen('php://stdin', 'r');
+        if ($stdin === false) {
+            fwrite(STDERR, "Could not open stdin\n");
+            return;
+        }
 
-        $this->shell_socket = $this->createSocket(
-            ZMQ::SOCKET_ROUTER,
-            $this->connection_details->shell_address,
-            new ShellMessageHandler($this)
-        );
-        $this->iopub_socket = $this->createSocket(ZMQ::SOCKET_PUB, $this->connection_details->iopub_address);
-        $this->hb_socket = $this->createSocket(
-            ZMQ::SOCKET_REP,
-            $this->connection_details->hb_address,
-            new HbMessageHandler($this)
-        );
-        $this->createSocket(ZMQ::SOCKET_ROUTER, $this->connection_details->stdin_address);
-        $this->createSocket(ZMQ::SOCKET_ROUTER, $this->connection_details->control_address);
+        while (($line = fgets($stdin)) !== false) {
+            $line = trim($line);
+            if ($line === '') {
+                continue;
+            }
 
-        $this->loop->run();
+            $this->handleBridgeMessage($line);
+        }
     }
 
     public function sendStatusMessage(string $status, Request $request): void
@@ -71,47 +58,104 @@ class Kernel
     public function sendIOPubMessage(Response $response): void
     {
         $message = $response->toMessage($this->connection_details->key, $this->connection_details->signature_scheme);
-        /** @phpstan-ignore argument.type */
-        $this->iopub_socket->send($message);
+        $this->writeBridgeMessage('iopub', $message);
     }
 
     public function sendShellMessage(Response $response): void
     {
         $message = $response->toMessage($this->connection_details->key, $this->connection_details->signature_scheme);
-        /** @phpstan-ignore argument.type */
-        $this->shell_socket->send($message);
+        $this->writeBridgeMessage($this->currentShellReplyChannel, $message);
     }
 
     public function sendHbMessage($message): void
     {
-        $this->hb_socket->send($message);
+        if (is_array($message)) {
+            $frames = array_map(static fn ($frame): string => (string) $frame, $message);
+            $this->writeBridgeMessage('hb', $frames);
+            return;
+        }
+
+        $this->writeBridgeMessage('hb', [(string) $message]);
     }
 
-    protected function createSocket($type, $address, $handler = null)
+    private function handleBridgeMessage(string $jsonLine): void
     {
-        $socketWrapper = $this->context->getSocket($type);
-        $socketWrapper->bind("tcp://{$address}");
+        $message = json_decode($jsonLine, true);
+        if (!is_array($message) || ($message['event'] ?? '') !== 'request') {
+            return;
+        }
 
-        $socketWrapper->on('error', function ($e): void {
-            echo $e->getMessage();
-        });
+        $channel = $message['channel'] ?? null;
+        if (!is_string($channel)) {
+            return;
+        }
 
-        $socketWrapper->on('messages', function ($message) use ($handler): void {
-            if ($handler === null) {
-                return;
-            }
+        $frames = $this->decodeFrames($message['frames_b64'] ?? null);
+        if ($frames === []) {
+            return;
+        }
 
-            if ($handler instanceof IMessageHandler) {
-                $handler->handle($message);
-            } elseif ($handler instanceof IRequestHandler) {
-                $handler->handle(new Request($message, $this->session_id));
-            }
-        });
+        if ($channel !== 'shell' && $channel !== 'control') {
+            return;
+        }
 
-        return $socketWrapper;
+        $this->currentShellReplyChannel = $channel;
+        try {
+            $this->shellMessageHandler->handle(new Request($frames, $this->session_id));
+        } catch (Throwable $throwable) {
+            fwrite(STDERR, $throwable->getMessage() . PHP_EOL);
+        } finally {
+            $this->currentShellReplyChannel = 'shell';
+        }
     }
 
-    private function getConfig(array $config = []): \Psy\Configuration
+    /**
+     * @return string[]
+     */
+    private function decodeFrames(mixed $encodedFrames): array
+    {
+        if (!is_array($encodedFrames)) {
+            return [];
+        }
+
+        $frames = [];
+        foreach ($encodedFrames as $encodedFrame) {
+            if (!is_string($encodedFrame)) {
+                return [];
+            }
+
+            $frame = base64_decode($encodedFrame, true);
+            if ($frame === false) {
+                return [];
+            }
+
+            $frames[] = $frame;
+        }
+
+        return $frames;
+    }
+
+    /**
+     * @param string[] $frames
+     */
+    private function writeBridgeMessage(string $channel, array $frames): void
+    {
+        $message = [
+            'event' => 'response',
+            'channel' => $channel,
+            'frames_b64' => array_map(static fn (string $frame): string => base64_encode($frame), $frames),
+        ];
+
+        $encodedMessage = json_encode($message, JSON_UNESCAPED_SLASHES);
+        if (!is_string($encodedMessage)) {
+            return;
+        }
+
+        fwrite(STDOUT, $encodedMessage . "\n");
+        fflush(STDOUT);
+    }
+
+    private function getConfig(array $config = []): Configuration
     {
         $dir = tempnam(\sys_get_temp_dir(), 'jupyter_php_kernel');
         unlink($dir);
