@@ -7,17 +7,25 @@ namespace Wundii\JupyterPhpKernel;
 class ConnectionDetails
 {
     public string $ip;
+
     public string $shell_address;
+
     public string $iopub_address;
+
     public string $stdin_address;
+
     public string $control_address;
+
     public string $hb_address;
 
     public string $signature_scheme;
+
     public string $key;
 
     private string $connection_file_path;
+
     private string $connection_file;
+
     private array $connection_details;
 
     public function __construct(string $connection_file_path)

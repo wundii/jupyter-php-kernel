@@ -411,14 +411,14 @@ class InspectReplyResponse extends Response
     private function buildFunctionSignature(ReflectionFunction $reflectionFunction): string
     {
         $params = [];
-        foreach ($reflectionFunction->getParameters() as $parameter) {
+        foreach ($reflectionFunction->getParameters() as $reflectionParameter) {
             $paramStr = '';
-            if ($parameter->hasType()) {
-                $paramStr .= $parameter->getType() . ' ';
+            if ($reflectionParameter->hasType()) {
+                $paramStr .= $reflectionParameter->getType() . ' ';
             }
-            $paramStr .= '$' . $parameter->getName();
-            if ($parameter->isDefaultValueAvailable()) {
-                $paramStr .= ' = ' . var_export($parameter->getDefaultValue(), true);
+            $paramStr .= '$' . $reflectionParameter->getName();
+            if ($reflectionParameter->isDefaultValueAvailable()) {
+                $paramStr .= ' = ' . var_export($reflectionParameter->getDefaultValue(), true);
             }
             $params[] = $paramStr;
         }

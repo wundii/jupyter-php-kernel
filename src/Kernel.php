@@ -16,12 +16,15 @@ use Wundii\JupyterPhpKernel\Responses\StatusResponse;
 class Kernel
 {
     public ConnectionDetails $connection_details;
+
     public string $session_id;
 
     public int $execution_count = 0;
+
     public Shell $shell;
 
     private ShellMessageHandler $shellMessageHandler;
+
     private string $currentShellReplyChannel = 'shell';
 
     public function __construct(ConnectionDetails $connectionDetails)

@@ -10,7 +10,9 @@ use Wundii\JupyterPhpKernel\Requests\Request;
 class CompleteReplyResponse extends Response
 {
     private array $builtInFunctions;
+
     private array $builtInFunctionsUser;
+
     private array $builtInClasses;
 
     public function __construct(Request $request)

@@ -9,10 +9,15 @@ use InvalidArgumentException;
 class Request
 {
     public array $ids;
+
     public string $hmac;
+
     public array $header;
+
     public array $parent_header;
+
     public array $metadata;
+
     public array $content;
 
     public string $session_id;

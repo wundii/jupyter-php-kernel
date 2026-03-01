@@ -101,6 +101,7 @@ final class CompleteReplyResponseTest extends TestCase
 
         $this->assertSame('ok', $completeReplyResponse->content['status']);
     }
+
     private function makeRequest(string $code, int $cursorPos): Request
     {
         return new Request(

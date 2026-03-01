@@ -11,17 +11,27 @@ use Wundii\JupyterPhpKernel\Requests\Request;
 abstract class Response
 {
     public const COMPLETE_REPLY = 'complete_reply';
+
     public const EXECUTE_REPLY = 'execute_reply';
+
     public const EXECUTE_RESULT = 'execute_result';
+
     public const INSPECT_REPLY = 'inspect_reply';
+
     public const KERNEL_INFO_REPLY = 'kernel_info_reply';
+
     public const STATUS = 'status';
+
     public array $content = [];
 
     protected string $type;
+
     protected array $header = [];
+
     protected array $parent_header = [];
+
     protected array $metadata = [];
+
     protected array $ids = [];
 
     public function __construct(string $type, Request $request, array $content = [], array $metadata = [])
